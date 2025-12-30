@@ -1189,10 +1189,24 @@
 
         .camera-actions {
             display: flex;
-            gap: 20px;
-            padding: 30px;
+            gap: 30px;
+            padding: 20px 30px 30px;
             justify-content: center;
+            align-items: flex-start;
+        }
+
+        .camera-action-group {
+            display: flex;
+            flex-direction: column;
             align-items: center;
+            gap: 8px;
+        }
+
+        .action-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .capture-btn {
@@ -1475,15 +1489,20 @@
         <div class="search-container">
             <div class="search-bar" onclick="openSearchModal()">
                 <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" placeholder="Search your collection..." readonly>
+                <input type="text" placeholder="Rechercher dans la collection..." readonly>
             </div>
-            <button class="icon-btn" onclick="openCameraModal()">
+            <button class="icon-btn" onclick="document.getElementById('mainGalleryInput').click()" title="Importer une photo">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            </button>
+            <button class="icon-btn" onclick="openCameraModal()" title="Scanner une carte">
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 15.2c1.9 0 3.5-1.6 3.5-3.5S13.9 8.2 12 8.2 8.5 9.8 8.5 11.7s1.6 3.5 3.5 3.5zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
             </button>
-            <button class="icon-btn accent" onclick="openSearchModal()">
+            <button class="icon-btn accent" onclick="openSearchModal()" title="Ajouter une carte">
                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             </button>
         </div>
+        <!-- Direct import from main screen -->
+        <input type="file" id="mainGalleryInput" class="photo-input" accept="image/*" onchange="handleDirectImport(event)">
 
         <!-- Sort Tabs -->
         <div class="sort-tabs">
@@ -1613,16 +1632,28 @@
             </div>
         </div>
         <div class="camera-actions" id="cameraActions">
-            <button class="camera-secondary-btn" onclick="document.getElementById('photoInput').click()">
-                <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-            </button>
-            <button class="capture-btn" onclick="capturePhoto()">
-                <svg viewBox="0 0 24 24"><path d="M12 15.2c1.9 0 3.5-1.6 3.5-3.5S13.9 8.2 12 8.2 8.5 9.8 8.5 11.7s1.6 3.5 3.5 3.5z"/></svg>
-            </button>
-            <button class="camera-secondary-btn" onclick="switchCamera()">
-                <svg viewBox="0 0 24 24"><path d="M9 12c0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3-3 1.34-3 3zm3-9c-4.97 0-9 4.03-9 9h2c0-3.87 3.13-7 7-7s7 3.13 7 7h2c0-4.97-4.03-9-9-9zm0 4c-2.76 0-5 2.24-5 5h2c0-1.66 1.34-3 3-3s3 1.34 3 3h2c0-2.76-2.24-5-5-5z"/></svg>
-            </button>
+            <div class="camera-action-group">
+                <button class="camera-secondary-btn" onclick="document.getElementById('galleryInput').click()" title="Importer photo">
+                    <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                </button>
+                <span class="action-label">Galerie</span>
+            </div>
+            <div class="camera-action-group">
+                <button class="capture-btn" onclick="capturePhoto()">
+                    <svg viewBox="0 0 24 24"><path d="M12 15.2c1.9 0 3.5-1.6 3.5-3.5S13.9 8.2 12 8.2 8.5 9.8 8.5 11.7s1.6 3.5 3.5 3.5z"/></svg>
+                </button>
+                <span class="action-label">Capturer</span>
+            </div>
+            <div class="camera-action-group">
+                <button class="camera-secondary-btn" onclick="switchCamera()" title="Changer caméra">
+                    <svg viewBox="0 0 24 24"><path d="M9 12c0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3-3 1.34-3 3zm3-9c-4.97 0-9 4.03-9 9h2c0-3.87 3.13-7 7-7s7 3.13 7 7h2c0-4.97-4.03-9-9-9zm0 4c-2.76 0-5 2.24-5 5h2c0-1.66 1.34-3 3-3s3 1.34 3 3h2c0-2.76-2.24-5-5-5z"/></svg>
+                </button>
+                <span class="action-label">Inverser</span>
+            </div>
         </div>
+        <!-- Gallery input (no capture attribute - opens photo gallery) -->
+        <input type="file" id="galleryInput" class="photo-input" accept="image/*" onchange="handlePhotoInput(event)">
+        <!-- Camera input (with capture attribute - opens camera directly) -->
         <input type="file" id="photoInput" class="photo-input" accept="image/*" capture="environment" onchange="handlePhotoInput(event)">
     </div>
 
@@ -2242,7 +2273,7 @@
             processImage(imageData);
         }
 
-        // Handle photo input from gallery
+        // Handle photo input from gallery (inside camera modal)
         function handlePhotoInput(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -2254,6 +2285,28 @@
             reader.readAsDataURL(file);
 
             // Reset input so same file can be selected again
+            event.target.value = '';
+        }
+
+        // Handle direct import from main screen
+        function handleDirectImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Open camera modal to show progress
+            document.getElementById('cameraModal').classList.add('active');
+            document.getElementById('scanResult').classList.remove('active');
+            document.getElementById('cameraActions').style.display = 'none';
+            document.getElementById('scanningOverlay').classList.add('active');
+            document.getElementById('scanProgress').textContent = 'Chargement de l\'image...';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                processImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+
+            // Reset input
             event.target.value = '';
         }
 
