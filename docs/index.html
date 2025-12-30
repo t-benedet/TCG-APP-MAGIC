@@ -1135,155 +1135,78 @@
     <div class="toast" id="toast">Card added to collection!</div>
 
     <script>
-        // Default cards collection with real data
-        const defaultCards = [
-            // Foundations (FDN)
-            {
-                id: "fdn-llanowar-elves",
-                name: "Llanowar Elves",
-                setName: "Foundations",
-                setCode: "FDN",
-                rarity: "common",
-                image: "https://cards.scryfall.io/small/front/8/9/896db83b-63ed-470b-a21d-6aa204754adf.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/8/9/896db83b-63ed-470b-a21d-6aa204754adf.jpg",
-                price: "0.15",
-                prices: { usd: "0.15", usdFoil: "0.50", eur: "0.10", eurFoil: "0.40", tix: "0.02" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Llanowar+Elves", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Llanowar+Elves", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Llanowar+Elves" },
-                quantity: 4,
-                isFoil: false
-            },
-            {
-                id: "fdn-counterspell",
-                name: "Counterspell",
-                setName: "Foundations",
-                setCode: "FDN",
-                rarity: "uncommon",
-                image: "https://cards.scryfall.io/small/front/1/b/1bc0fce6-bd85-4cd0-8a01-36e8b68f3acb.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/1/b/1bc0fce6-bd85-4cd0-8a01-36e8b68f3acb.jpg",
-                price: "1.50",
-                prices: { usd: "1.50", usdFoil: "3.00", eur: "1.20", eurFoil: "2.50", tix: "0.15" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Counterspell", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Counterspell", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Counterspell" },
-                quantity: 2,
-                isFoil: false
-            },
-            // Duskmourn (DSK)
-            {
-                id: "dsk-overlord",
-                name: "Overlord of the Balemurk",
-                setName: "Duskmourn: House of Horror",
-                setCode: "DSK",
-                rarity: "mythic",
-                image: "https://cards.scryfall.io/small/front/9/b/9b4a0bc7-4362-4a30-860d-e8bc1a5d1ef8.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/9/b/9b4a0bc7-4362-4a30-860d-e8bc1a5d1ef8.jpg",
-                price: "25.00",
-                prices: { usd: "25.00", usdFoil: "35.00", eur: "22.00", eurFoil: "30.00", tix: "8.50" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Overlord+of+the+Balemurk", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Overlord+of+the+Balemurk", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Overlord+of+the+Balemurk" },
-                quantity: 1,
-                isFoil: true
-            },
-            {
-                id: "dsk-fear-of-missing-out",
-                name: "Fear of Missing Out",
-                setName: "Duskmourn: House of Horror",
-                setCode: "DSK",
-                rarity: "rare",
-                image: "https://cards.scryfall.io/small/front/2/b/2b4a7986-b5d5-4f0c-9c27-0e157e8aa9b8.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/2/b/2b4a7986-b5d5-4f0c-9c27-0e157e8aa9b8.jpg",
-                price: "4.50",
-                prices: { usd: "4.50", usdFoil: "8.00", eur: "4.00", eurFoil: "7.00", tix: "1.20" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Fear+of+Missing+Out", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Fear+of+Missing+Out", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Fear+of+Missing+Out" },
-                quantity: 3,
-                isFoil: false
-            },
-            // Bloomburrow (BLB)
-            {
-                id: "blb-mabel",
-                name: "Mabel, Heir to Cragflame",
-                setName: "Bloomburrow",
-                setCode: "BLB",
-                rarity: "mythic",
-                image: "https://cards.scryfall.io/small/front/0/c/0ce3edbb-d21c-4e68-b0e8-c0c01dd3b82e.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/0/c/0ce3edbb-d21c-4e68-b0e8-c0c01dd3b82e.jpg",
-                price: "18.00",
-                prices: { usd: "18.00", usdFoil: "28.00", eur: "16.00", eurFoil: "25.00", tix: "6.00" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Mabel+Heir+to+Cragflame", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Mabel+Heir+to+Cragflame", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Mabel+Heir+to+Cragflame" },
-                quantity: 1,
-                isFoil: false
-            },
-            {
-                id: "blb-bumbleflower",
-                name: "Bumbleflower's Sharepot",
-                setName: "Bloomburrow",
-                setCode: "BLB",
-                rarity: "rare",
-                image: "https://cards.scryfall.io/small/front/c/c/cc4c4e13-fe52-4d29-98ab-69341f862391.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/c/c/cc4c4e13-fe52-4d29-98ab-69341f862391.jpg",
-                price: "2.00",
-                prices: { usd: "2.00", usdFoil: "4.00", eur: "1.80", eurFoil: "3.50", tix: "0.50" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Bumbleflower", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Bumbleflower", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Bumbleflower" },
-                quantity: 2,
-                isFoil: false
-            },
-            // Modern Horizons 3 (MH3)
-            {
-                id: "mh3-flare-of-denial",
-                name: "Flare of Denial",
-                setName: "Modern Horizons 3",
-                setCode: "MH3",
-                rarity: "rare",
-                image: "https://cards.scryfall.io/small/front/5/f/5f9d6084-dd4b-4c27-8439-de99cee6cfb6.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/5/f/5f9d6084-dd4b-4c27-8439-de99cee6cfb6.jpg",
-                price: "45.00",
-                prices: { usd: "45.00", usdFoil: "60.00", eur: "40.00", eurFoil: "55.00", tix: "25.00" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Flare+of+Denial", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Flare+of+Denial", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Flare+of+Denial" },
-                quantity: 2,
-                isFoil: false
-            },
-            {
-                id: "mh3-nadu",
-                name: "Nadu, Winged Wisdom",
-                setName: "Modern Horizons 3",
-                setCode: "MH3",
-                rarity: "rare",
-                image: "https://cards.scryfall.io/small/front/8/5/85fc004e-dcb8-4d2f-b8d4-c1d0d8b3a742.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/8/5/85fc004e-dcb8-4d2f-b8d4-c1d0d8b3a742.jpg",
-                price: "12.00",
-                prices: { usd: "12.00", usdFoil: "20.00", eur: "10.00", eurFoil: "18.00", tix: "4.00" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Nadu+Winged+Wisdom", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Nadu+Winged+Wisdom", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Nadu+Winged+Wisdom" },
-                quantity: 4,
-                isFoil: false
-            },
-            // Outlaws of Thunder Junction (OTJ)
-            {
-                id: "otj-oko",
-                name: "Oko, Thief of Crowns",
-                setName: "Outlaws of Thunder Junction",
-                setCode: "OTJ",
-                rarity: "mythic",
-                image: "https://cards.scryfall.io/small/front/3/4/3462a3d0-5552-49fa-9eb7-100a1c58c8a8.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/3/4/3462a3d0-5552-49fa-9eb7-100a1c58c8a8.jpg",
-                price: "35.00",
-                prices: { usd: "35.00", usdFoil: "50.00", eur: "32.00", eurFoil: "45.00", tix: "15.00" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Oko+Thief+of+Crowns", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Oko+Thief+of+Crowns", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Oko+Thief+of+Crowns" },
-                quantity: 1,
-                isFoil: true
-            },
-            // Murders at Karlov Manor (MKM)
-            {
-                id: "mkm-leyline",
-                name: "Leyline of the Guildpact",
-                setName: "Murders at Karlov Manor",
-                setCode: "MKM",
-                rarity: "rare",
-                image: "https://cards.scryfall.io/small/front/4/8/48c56e4c-e3b4-4c39-a97f-f5b9888a3ebf.jpg",
-                imageLarge: "https://cards.scryfall.io/large/front/4/8/48c56e4c-e3b4-4c39-a97f-f5b9888a3ebf.jpg",
-                price: "8.00",
-                prices: { usd: "8.00", usdFoil: "15.00", eur: "7.00", eurFoil: "12.00", tix: "2.50" },
-                purchaseUris: { tcgplayer: "https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=Leyline+of+the+Guildpact", cardmarket: "https://www.cardmarket.com/en/Magic/Products/Search?searchString=Leyline+of+the+Guildpact", cardhoarder: "https://www.cardhoarder.com/cards?data%5Bsearch%5D=Leyline+of+the+Guildpact" },
-                quantity: 4,
-                isFoil: false
-            }
+        // Default cards - will be loaded from Scryfall API
+        const defaultCardNames = [
+            { name: "Llanowar Elves", set: "fdn", quantity: 4, isFoil: false },
+            { name: "Counterspell", set: "fdn", quantity: 2, isFoil: false },
+            { name: "Overlord of the Balemurk", set: "dsk", quantity: 1, isFoil: true },
+            { name: "Fear of Missing Out", set: "dsk", quantity: 3, isFoil: false },
+            { name: "Mabel, Heir to Cragflame", set: "blb", quantity: 1, isFoil: false },
+            { name: "Moonrise Cleric", set: "blb", quantity: 2, isFoil: false },
+            { name: "Flare of Denial", set: "mh3", quantity: 2, isFoil: false },
+            { name: "Nadu, Winged Wisdom", set: "mh3", quantity: 4, isFoil: false },
+            { name: "Simulacrum Synthesizer", set: "mkm", quantity: 4, isFoil: false },
+            { name: "Leyline of the Guildpact", set: "mkm", quantity: 4, isFoil: false }
         ];
+
+        // Load card from Scryfall API
+        async function loadCardFromScryfall(cardInfo) {
+            const query = cardInfo.set
+                ? `!"${cardInfo.name}" set:${cardInfo.set}`
+                : `!"${cardInfo.name}"`;
+
+            try {
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints`);
+                const data = await response.json();
+
+                if (data.data && data.data.length > 0) {
+                    const card = data.data[0];
+                    const imageUrl = card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small || '';
+                    const imageLarge = card.image_uris?.large || card.card_faces?.[0]?.image_uris?.large || '';
+
+                    return {
+                        id: card.id,
+                        name: card.name,
+                        setName: card.set_name,
+                        setCode: card.set,
+                        rarity: card.rarity,
+                        image: imageUrl,
+                        imageLarge: imageLarge,
+                        price: card.prices?.usd || null,
+                        prices: {
+                            usd: card.prices?.usd,
+                            usdFoil: card.prices?.usd_foil,
+                            eur: card.prices?.eur,
+                            eurFoil: card.prices?.eur_foil,
+                            tix: card.prices?.tix
+                        },
+                        purchaseUris: card.purchase_uris,
+                        quantity: cardInfo.quantity,
+                        isFoil: cardInfo.isFoil
+                    };
+                }
+            } catch (error) {
+                console.error(`Failed to load ${cardInfo.name}:`, error);
+            }
+            return null;
+        }
+
+        // Load all default cards from API
+        async function loadDefaultCards() {
+            showToast('Loading cards from Scryfall...');
+            const cards = [];
+
+            for (const cardInfo of defaultCardNames) {
+                const card = await loadCardFromScryfall(cardInfo);
+                if (card) {
+                    cards.push(card);
+                }
+                // Small delay to respect rate limits
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            return cards;
+        }
 
         // Collection data
         let collection = JSON.parse(localStorage.getItem('magicCollection')) || [];
@@ -1292,11 +1215,14 @@
         let currentSort = 'setName'; // Default sort by set
 
         // Initialize with default cards if empty
-        function initializeCollection() {
+        async function initializeCollection() {
             if (collection.length === 0) {
-                collection = [...defaultCards];
+                // Load cards from Scryfall API
+                collection = await loadDefaultCards();
                 saveCollection();
+                showToast('Collection loaded!');
             }
+            sortCollection('setName');
         }
 
         // Sort collection
@@ -1354,8 +1280,8 @@
                 document.getElementById('launchScreen').classList.add('hidden');
             }, 2000);
 
+            // Initialize collection (async)
             initializeCollection();
-            sortCollection('setName');
         });
 
         // Render collection
