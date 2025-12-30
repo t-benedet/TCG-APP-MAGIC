@@ -2407,7 +2407,21 @@
 
             if (lines.length === 0) return null;
 
-            // Clean and filter lines
+            // Patterns that indicate mana symbols or end of card name
+            // OCR often reads mana symbols as: O, 0, Q, @, ©, ®, circles, etc.
+            const manaSymbolPatterns = [
+                /\s+[WUBRGC0-9@©®°◯○●⬤]{1,2}(\s|$)/i,  // Single mana letters/symbols
+                /\s+[0-9]{1,2}[WUBRGC]/i,               // Hybrid like "2W"
+                /\{[WUBRGC0-9]+\}/i,                     // Bracketed mana {W}{U}
+                /\s+[\(\)@©®°◯○●⬤]+/,                   // Circle-like symbols
+                /\s+[O0Q]{2,}/i,                         // Multiple O/0 (mana circles)
+                /[^a-zA-Z\s\-',][O0Q@©®°]+/i,           // Symbols followed by circles
+            ];
+
+            // Characters that commonly appear as OCR noise from mana symbols
+            const trailingNoisePattern = /[\s@©®°◯○●⬤\(\)\[\]\{\}WUBRGC0-9OQ]+$/i;
+
+            // Invalid full line patterns
             const invalidPatterns = [
                 /^\d+$/,
                 /^[^a-zA-Z]+$/,
@@ -2416,21 +2430,45 @@
             ];
 
             for (const line of lines) {
-                let cleanLine = line
-                    .replace(/[^\w\s\-',]/g, '')
+                let cleanLine = line;
+
+                // First, try to cut at mana symbol patterns
+                for (const pattern of manaSymbolPatterns) {
+                    const match = cleanLine.match(pattern);
+                    if (match && match.index > 2) {
+                        cleanLine = cleanLine.substring(0, match.index);
+                        break;
+                    }
+                }
+
+                // Remove trailing noise (mana symbol artifacts)
+                cleanLine = cleanLine.replace(trailingNoisePattern, '');
+
+                // Remove other special characters but keep letters, spaces, hyphens, apostrophes
+                cleanLine = cleanLine
+                    .replace(/[^\w\s\-',àâäéèêëïîôùûüÿçœæ]/gi, '')
                     .replace(/\s+/g, ' ')
                     .trim();
 
+                // Remove single trailing letters (often mana symbol remnants)
+                cleanLine = cleanLine.replace(/\s+[A-Z]$/i, '').trim();
+
                 if (cleanLine.length < 2) continue;
                 if (invalidPatterns.some(p => p.test(cleanLine))) continue;
+
+                // Must contain at least 2 consecutive letters
                 if (/[a-zA-Z]{2,}/.test(cleanLine)) {
                     return cleanLine;
                 }
             }
 
-            // Fallback
-            const firstLine = lines[0]?.replace(/[^\w\s\-',]/g, '').trim();
-            return firstLine && firstLine.length >= 2 ? firstLine : null;
+            // Fallback: try first line with aggressive cleaning
+            let fallback = lines[0] || '';
+            fallback = fallback.replace(trailingNoisePattern, '');
+            fallback = fallback.replace(/[^\w\s\-',]/g, '').trim();
+            fallback = fallback.replace(/\s+[A-Z]$/i, '').trim();
+
+            return fallback && fallback.length >= 2 ? fallback : null;
         }
 
         // Show manual input when OCR fails
