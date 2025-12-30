@@ -1153,24 +1153,38 @@
 
         .scan-guide {
             position: absolute;
-            top: 8%;
-            left: 10%;
-            right: 10%;
-            height: 18%;
-            border: 2px dashed var(--accent);
-            border-radius: 8px;
+            top: 3%;
+            left: 8%;
+            right: 8%;
+            bottom: 3%;
+            border: 3px solid var(--accent);
+            border-radius: 16px;
+            background: transparent;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+        }
+
+        .scan-guide::before {
+            content: '';
+            position: absolute;
+            top: 4%;
+            left: 6%;
+            right: 6%;
+            height: 10%;
+            border: 2px dashed rgba(153, 102, 255, 0.5);
+            border-radius: 4px;
             background: rgba(153, 102, 255, 0.1);
         }
 
         .scan-guide::after {
-            content: 'Align card name here';
+            content: 'Cadrer la carte complète';
             position: absolute;
-            bottom: -28px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            font-size: 12px;
-            color: var(--accent);
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
             white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
 
         .camera-actions {
@@ -1518,16 +1532,16 @@
             </div>
             <div class="scanning-overlay" id="scanningOverlay">
                 <div class="scanning-animation"></div>
-                <div class="scanning-text">Analyzing card...</div>
-                <div class="scanning-progress" id="scanProgress">Initializing OCR...</div>
+                <div class="scanning-text">Analyse de la carte...</div>
+                <div class="scanning-progress" id="scanProgress">Initialisation OCR...</div>
             </div>
             <div class="scan-result" id="scanResult">
                 <div class="scan-result-header">
-                    <h3>Card Detected</h3>
-                    <p>Select the matching card below</p>
+                    <h3>Carte détectée</h3>
+                    <p>Sélectionne la carte correspondante</p>
                 </div>
                 <div class="detected-text">
-                    <label>Detected name:</label>
+                    <label>Informations détectées :</label>
                     <span id="detectedName">-</span>
                 </div>
                 <div class="scan-matches" id="scanMatches">
@@ -1535,7 +1549,7 @@
                 </div>
                 <button class="retry-btn" onclick="retryScan()">
                     <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-                    Scan Another Card
+                    Scanner une autre carte
                 </button>
             </div>
         </div>
@@ -2132,7 +2146,7 @@
                 video.srcObject = cameraStream;
             } catch (error) {
                 console.error('Camera error:', error);
-                showToast('Cannot access camera. Use gallery instead.');
+                showToast('Caméra inaccessible. Utilise la galerie.');
                 // Fallback to photo input
                 document.getElementById('photoInput').click();
             }
@@ -2190,7 +2204,7 @@
             document.getElementById('cameraActions').style.display = 'none';
 
             try {
-                document.getElementById('scanProgress').textContent = 'Initializing OCR...';
+                document.getElementById('scanProgress').textContent = 'Initialisation OCR...';
 
                 // Use Tesseract.js to recognize text
                 const result = await Tesseract.recognize(
@@ -2200,7 +2214,7 @@
                         logger: m => {
                             if (m.status === 'recognizing text') {
                                 const percent = Math.round(m.progress * 100);
-                                document.getElementById('scanProgress').textContent = `Analyzing... ${percent}%`;
+                                document.getElementById('scanProgress').textContent = `Analyse en cours... ${percent}%`;
                             }
                         }
                     }
@@ -2209,84 +2223,194 @@
                 const text = result.data.text;
                 console.log('OCR Result:', text);
 
-                // Extract card name (usually the first line or the most prominent text)
-                const cardName = extractCardName(text);
+                // Extract card info from full card scan
+                const cardInfo = extractCardInfo(text);
+                console.log('Extracted card info:', cardInfo);
 
-                if (cardName && cardName.length >= 2) {
-                    document.getElementById('scanProgress').textContent = 'Searching for card...';
-                    await searchScannedCard(cardName);
+                if (cardInfo.name && cardInfo.name.length >= 2) {
+                    document.getElementById('scanProgress').textContent = 'Recherche de la carte...';
+                    await searchScannedCard(cardInfo);
                 } else {
-                    showToast('Could not detect card name. Try again.');
+                    showToast('Carte non détectée. Réessaie avec plus de lumière.');
                     retryScan();
                 }
             } catch (error) {
                 console.error('OCR Error:', error);
-                showToast('Failed to analyze image. Try again.');
+                showToast('Échec de l\'analyse. Réessaie.');
                 retryScan();
             }
         }
 
-        // Extract card name from OCR text
-        function extractCardName(text) {
-            // Split by lines and clean up
+        // Extract full card information from OCR text
+        function extractCardInfo(text) {
             const lines = text.split('\n')
                 .map(line => line.trim())
-                .filter(line => line.length >= 2);
+                .filter(line => line.length >= 1);
 
-            if (lines.length === 0) return null;
+            console.log('Lines found:', lines);
 
-            // Card name is usually the first line (top of the card)
-            // Filter out common non-name elements
-            const invalidPatterns = [
+            const cardInfo = {
+                name: null,
+                type: null,
+                setCode: null,
+                collectorNumber: null,
+                textContent: []
+            };
+
+            // Patterns for card elements
+            const typePatterns = /^(creature|instant|sorcery|enchantment|artifact|land|planeswalker|legendary|tribal|battle|kindred)/i;
+            const collectorPattern = /(\d{1,4})\s*[\/\\]\s*(\d{1,4})/; // Matches "123/456"
+            const setCodePattern = /^[A-Z]{2,5}$/; // Set codes like "MH3", "FDN"
+            const manaPattern = /^[\{\}WUBRGCX0-9\s]+$/;
+            const statsPattern = /^\d+\s*[\/\\]\s*\d+$/; // Power/Toughness like "2/2"
+            const invalidNamePatterns = [
                 /^\d+$/, // Just numbers
-                /^[^a-zA-Z]+$/, // No letters
-                /^(creature|instant|sorcery|enchantment|artifact|land|planeswalker)$/i,
-                /^\{[WUBRG0-9]\}/, // Mana symbols
-                /^flying|trample|haste|vigilance|lifelink|deathtouch|first strike$/i
+                /^[^a-zA-Z]+$/, // No letters at all
+                /^\{[WUBRG0-9]\}/i, // Starts with mana symbol
+                /^©|®|™/i, // Copyright/trademark
+                /^(target|you|your|when|whenever|if|at|the|a|an|of|to|and|or)$/i, // Common words alone
             ];
 
-            for (const line of lines) {
-                // Clean up the line
+            // Parse lines from top (card name area) to bottom (collector info)
+            let foundName = false;
+            let foundType = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+
+                // Clean the line
                 let cleanLine = line
-                    .replace(/[^\w\s\-',]/g, '') // Remove special chars except common ones
-                    .replace(/\s+/g, ' ') // Normalize spaces
+                    .replace(/[^\w\s\-',\.\/\\]/g, '')
+                    .replace(/\s+/g, ' ')
                     .trim();
 
-                // Skip if too short or matches invalid patterns
                 if (cleanLine.length < 2) continue;
-                if (invalidPatterns.some(pattern => pattern.test(cleanLine))) continue;
 
-                // Return the first valid-looking card name
-                return cleanLine;
+                // Check for collector number (usually near bottom)
+                const collectorMatch = line.match(collectorPattern);
+                if (collectorMatch) {
+                    cardInfo.collectorNumber = collectorMatch[1];
+                    // Often set code is nearby
+                    const nearby = lines.slice(Math.max(0, i-2), i+3).join(' ');
+                    const setMatch = nearby.match(/\b([A-Z]{2,5})\b/);
+                    if (setMatch) {
+                        cardInfo.setCode = setMatch[1].toLowerCase();
+                    }
+                    continue;
+                }
+
+                // Check for power/toughness
+                if (statsPattern.test(cleanLine)) {
+                    continue;
+                }
+
+                // Check for mana costs
+                if (manaPattern.test(cleanLine)) {
+                    continue;
+                }
+
+                // Check for card type line
+                if (!foundType && typePatterns.test(cleanLine)) {
+                    cardInfo.type = cleanLine;
+                    foundType = true;
+                    continue;
+                }
+
+                // Check for set code alone
+                if (setCodePattern.test(cleanLine)) {
+                    cardInfo.setCode = cleanLine.toLowerCase();
+                    continue;
+                }
+
+                // Card name is typically in the first valid lines (before type)
+                if (!foundName && !foundType) {
+                    // Skip lines that are clearly not names
+                    if (invalidNamePatterns.some(p => p.test(cleanLine))) continue;
+
+                    // Card name found
+                    if (cleanLine.length >= 2 && /[a-zA-Z]{2,}/.test(cleanLine)) {
+                        cardInfo.name = cleanLine;
+                        foundName = true;
+                        continue;
+                    }
+                }
+
+                // Collect other text content for context
+                if (foundName && cleanLine.length > 3) {
+                    cardInfo.textContent.push(cleanLine);
+                }
             }
 
-            // Fallback: return first cleaned line
-            return lines[0].replace(/[^\w\s\-',]/g, '').trim();
+            // Fallback: if no name found, try first valid line
+            if (!cardInfo.name && lines.length > 0) {
+                for (const line of lines) {
+                    const cleaned = line.replace(/[^\w\s\-',]/g, '').trim();
+                    if (cleaned.length >= 2 && /[a-zA-Z]{2,}/.test(cleaned)) {
+                        cardInfo.name = cleaned;
+                        break;
+                    }
+                }
+            }
+
+            return cardInfo;
         }
 
-        // Search for scanned card on Scryfall
-        async function searchScannedCard(cardName) {
+        // Search for scanned card on Scryfall with full card info
+        async function searchScannedCard(cardInfo) {
             try {
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=cards`);
+                // Build smart search query
+                let query = cardInfo.name;
+                let displayInfo = cardInfo.name;
+
+                // Add set filter if we detected it
+                if (cardInfo.setCode) {
+                    query += ` set:${cardInfo.setCode}`;
+                    displayInfo += ` (${cardInfo.setCode.toUpperCase()})`;
+                }
+
+                // Add collector number if we have it
+                if (cardInfo.collectorNumber && cardInfo.setCode) {
+                    // Try exact match first with collector number
+                    try {
+                        const exactResponse = await fetch(`https://api.scryfall.com/cards/${cardInfo.setCode}/${cardInfo.collectorNumber}`);
+                        if (exactResponse.ok) {
+                            const exactCard = await exactResponse.json();
+                            document.getElementById('scanningOverlay').classList.remove('active');
+                            document.getElementById('detectedName').textContent = `${cardInfo.name} (#${cardInfo.collectorNumber})`;
+                            displayScanResults([exactCard]);
+                            document.getElementById('scanResult').classList.add('active');
+                            return;
+                        }
+                    } catch (e) {
+                        console.log('Exact match failed, trying search...');
+                    }
+                }
+
+                // Regular search
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=cards`);
                 const data = await response.json();
 
                 document.getElementById('scanningOverlay').classList.remove('active');
-                document.getElementById('detectedName').textContent = cardName;
+                document.getElementById('detectedName').textContent = displayInfo;
 
                 if (data.data && data.data.length > 0) {
                     displayScanResults(data.data.slice(0, 10));
                 } else {
-                    // Try fuzzy search
-                    const fuzzyResponse = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(cardName)}`);
+                    // Try fuzzy search with just the name
+                    const fuzzyResponse = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(cardInfo.name)}`);
                     const fuzzyData = await fuzzyResponse.json();
 
                     if (fuzzyData.data && fuzzyData.data.length > 0) {
                         // Search with first suggestion
-                        const betterResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(fuzzyData.data[0])}`);
+                        let betterQuery = fuzzyData.data[0];
+                        if (cardInfo.setCode) {
+                            betterQuery += ` set:${cardInfo.setCode}`;
+                        }
+                        const betterResponse = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(betterQuery)}`);
                         const betterData = await betterResponse.json();
 
                         if (betterData.data && betterData.data.length > 0) {
-                            document.getElementById('detectedName').textContent = `${cardName} → ${fuzzyData.data[0]}`;
+                            document.getElementById('detectedName').textContent = `${cardInfo.name} → ${fuzzyData.data[0]}`;
                             displayScanResults(betterData.data.slice(0, 10));
                         } else {
                             displayNoResults();
@@ -2300,7 +2424,7 @@
             } catch (error) {
                 console.error('Search error:', error);
                 document.getElementById('scanningOverlay').classList.remove('active');
-                showToast('Search failed. Try again.');
+                showToast('Échec de la recherche. Réessaie.');
                 retryScan();
             }
         }
@@ -2308,7 +2432,7 @@
         // Display scan results
         function displayScanResults(cards) {
             const container = document.getElementById('scanMatches');
-            let html = '<h4>Matching cards:</h4>';
+            let html = '<h4>Cartes correspondantes :</h4>';
 
             cards.forEach(card => {
                 const imageUrl = card.image_uris?.normal || card.image_uris?.small || card.card_faces?.[0]?.image_uris?.normal || card.card_faces?.[0]?.image_uris?.small || '';
@@ -2349,8 +2473,8 @@
         function displayNoResults() {
             document.getElementById('scanMatches').innerHTML = `
                 <div class="search-tips" style="padding: 20px;">
-                    <h3>No cards found</h3>
-                    <p>Try scanning again with better lighting or use manual search.</p>
+                    <h3>Aucune carte trouvée</h3>
+                    <p>Réessaie avec un meilleur éclairage ou utilise la recherche manuelle.</p>
                 </div>
             `;
         }
@@ -2371,7 +2495,7 @@
             saveCollection();
             renderCollection();
             closeCameraModal();
-            showToast('Card added to collection!');
+            showToast('Carte ajoutée à la collection !');
         }
 
         // Retry scan
