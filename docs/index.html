@@ -794,25 +794,103 @@
 
         /* Set Header */
         .set-header {
-            padding: 12px 4px 8px;
+            padding: 12px 12px;
             font-size: 13px;
             font-weight: 600;
             color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 1px solid rgba(153, 102, 255, 0.2);
-            margin-bottom: 8px;
+            background: rgba(153, 102, 255, 0.08);
+            border: 1px solid rgba(153, 102, 255, 0.2);
+            border-radius: 12px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
         }
 
-        .set-header::before {
+        .set-header:hover {
+            background: rgba(153, 102, 255, 0.15);
+        }
+
+        .set-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .set-header-left::before {
             content: '';
             width: 4px;
             height: 16px;
             background: var(--accent);
             border-radius: 2px;
+        }
+
+        .set-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .set-card-count {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.1);
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .set-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .set-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .collapse-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .collapse-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--accent);
+        }
+
+        .set-header.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .set-cards {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .set-cards.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0;
         }
 
         /* Search Tips */
@@ -1213,6 +1291,22 @@
         let currentCard = null;
         let searchTimeout = null;
         let currentSort = 'setName'; // Default sort by set
+        let collapsedSets = JSON.parse(localStorage.getItem('collapsedSets')) || {};
+
+        // Toggle set collapse
+        function toggleSet(setName) {
+            collapsedSets[setName] = !collapsedSets[setName];
+            localStorage.setItem('collapsedSets', JSON.stringify(collapsedSets));
+
+            // Toggle UI
+            const header = document.querySelector(`[data-set="${setName}"]`);
+            const cards = document.querySelector(`[data-set-cards="${setName}"]`);
+
+            if (header && cards) {
+                header.classList.toggle('collapsed');
+                cards.classList.toggle('collapsed');
+            }
+        }
 
         // Initialize with default cards if empty
         async function initializeCollection() {
@@ -1307,41 +1401,103 @@
                 `;
             } else {
                 let html = '';
-                let currentSet = '';
 
-                collection.forEach((card, index) => {
-                    const rarity = card.rarity || 'common';
+                if (currentSort === 'setName') {
+                    // Group cards by set
+                    const cardsBySet = {};
+                    collection.forEach((card, index) => {
+                        const setName = card.setName || 'Unknown';
+                        if (!cardsBySet[setName]) {
+                            cardsBySet[setName] = [];
+                        }
+                        cardsBySet[setName].push({ ...card, originalIndex: index });
+                    });
 
-                    // Add set header when sorting by set
-                    if (currentSort === 'setName' && card.setName !== currentSet) {
-                        currentSet = card.setName;
-                        html += `<div class="set-header">${card.setName}</div>`;
-                    }
+                    // Render each set with collapsible header
+                    Object.keys(cardsBySet).forEach(setName => {
+                        const setCards = cardsBySet[setName];
+                        const isCollapsed = collapsedSets[setName] || false;
+                        const totalSetCards = setCards.reduce((sum, c) => sum + c.quantity, 0);
+                        const setCardCount = setCards.length;
+                        const setValue = setCards.reduce((sum, c) => sum + ((parseFloat(c.price) || 0) * c.quantity), 0);
 
-                    html += `
-                        <div class="card-item" onclick="openFullscreen(${index})">
-                            <img class="card-image ${rarity}" src="${card.image}" alt="${card.name}">
-                            <div class="card-info">
-                                <div class="card-name">
-                                    ${card.name}
-                                    ${card.isFoil ? '<span class="foil-icon">✨</span>' : ''}
+                        html += `
+                            <div class="set-header ${isCollapsed ? 'collapsed' : ''}" data-set="${setName}" onclick="toggleSet('${setName.replace(/'/g, "\\'")}')">
+                                <div class="set-header-left">
+                                    <div class="set-header-info">
+                                        <span>${setName}</span>
+                                        <span class="set-card-count">${totalSetCards} card${totalSetCards > 1 ? 's' : ''}</span>
+                                    </div>
                                 </div>
-                                <div class="card-set">${card.setName}</div>
-                                <div class="card-meta">
-                                    <span class="rarity-badge ${rarity}">${rarity}</span>
-                                    ${card.price ? `<span class="card-price">$${card.price}</span>` : ''}
+                                <div class="set-header-right">
+                                    <span class="set-value">$${setValue.toFixed(2)}</span>
+                                    <div class="collapse-icon">
+                                        <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="quantity-controls" onclick="event.stopPropagation()">
-                                <span class="quantity">×${card.quantity}</span>
-                                <div class="qty-buttons">
-                                    <button class="qty-btn minus" onclick="updateQuantity(${index}, -1)">−</button>
-                                    <button class="qty-btn plus" onclick="updateQuantity(${index}, 1)">+</button>
+                            <div class="set-cards ${isCollapsed ? 'collapsed' : ''}" data-set-cards="${setName}">
+                        `;
+
+                        setCards.forEach(card => {
+                            const rarity = card.rarity || 'common';
+                            html += `
+                                <div class="card-item" onclick="openFullscreen(${card.originalIndex})">
+                                    <img class="card-image ${rarity}" src="${card.image}" alt="${card.name}">
+                                    <div class="card-info">
+                                        <div class="card-name">
+                                            ${card.name}
+                                            ${card.isFoil ? '<span class="foil-icon">✨</span>' : ''}
+                                        </div>
+                                        <div class="card-set">${card.setName}</div>
+                                        <div class="card-meta">
+                                            <span class="rarity-badge ${rarity}">${rarity}</span>
+                                            ${card.price ? `<span class="card-price">$${card.price}</span>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="quantity-controls" onclick="event.stopPropagation()">
+                                        <span class="quantity">×${card.quantity}</span>
+                                        <div class="qty-buttons">
+                                            <button class="qty-btn minus" onclick="updateQuantity(${card.originalIndex}, -1)">−</button>
+                                            <button class="qty-btn plus" onclick="updateQuantity(${card.originalIndex}, 1)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        html += `</div>`; // Close set-cards
+                    });
+                } else {
+                    // Simple list without grouping
+                    collection.forEach((card, index) => {
+                        const rarity = card.rarity || 'common';
+                        html += `
+                            <div class="card-item" onclick="openFullscreen(${index})">
+                                <img class="card-image ${rarity}" src="${card.image}" alt="${card.name}">
+                                <div class="card-info">
+                                    <div class="card-name">
+                                        ${card.name}
+                                        ${card.isFoil ? '<span class="foil-icon">✨</span>' : ''}
+                                    </div>
+                                    <div class="card-set">${card.setName}</div>
+                                    <div class="card-meta">
+                                        <span class="rarity-badge ${rarity}">${rarity}</span>
+                                        ${card.price ? `<span class="card-price">$${card.price}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="quantity-controls" onclick="event.stopPropagation()">
+                                    <span class="quantity">×${card.quantity}</span>
+                                    <div class="qty-buttons">
+                                        <button class="qty-btn minus" onclick="updateQuantity(${index}, -1)">−</button>
+                                        <button class="qty-btn plus" onclick="updateQuantity(${index}, 1)">+</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                });
+                        `;
+                    });
+                }
+
                 cardList.innerHTML = html;
             }
 
