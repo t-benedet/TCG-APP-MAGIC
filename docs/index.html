@@ -247,6 +247,25 @@
             border-radius: 8px;
             object-fit: cover;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+        }
+
+        .card-image-placeholder {
+            width: 60px;
+            height: 84px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .card-image-placeholder svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-secondary);
+            opacity: 0.5;
         }
 
         .card-image.common { box-shadow: 0 0 15px rgba(176, 176, 176, 0.3); }
@@ -486,6 +505,8 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             position: relative;
             z-index: 1;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            min-height: 390px;
         }
 
         .fullscreen-info {
@@ -1239,8 +1260,8 @@
 
                 if (data.data && data.data.length > 0) {
                     const card = data.data[0];
-                    const imageUrl = card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small || '';
-                    const imageLarge = card.image_uris?.large || card.card_faces?.[0]?.image_uris?.large || '';
+                    const imageUrl = card.image_uris?.normal || card.image_uris?.small || card.card_faces?.[0]?.image_uris?.normal || card.card_faces?.[0]?.image_uris?.small || '';
+                    const imageLarge = card.image_uris?.large || card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.large || card.card_faces?.[0]?.image_uris?.normal || '';
 
                     return {
                         id: card.id,
@@ -1286,12 +1307,23 @@
             return cards;
         }
 
+        // Cache version - increment to force refresh
+        const CACHE_VERSION = 2;
+        const storedVersion = parseInt(localStorage.getItem('cacheVersion')) || 0;
+
         // Collection data
         let collection = JSON.parse(localStorage.getItem('magicCollection')) || [];
         let currentCard = null;
         let searchTimeout = null;
         let currentSort = 'setName'; // Default sort by set
         let collapsedSets = JSON.parse(localStorage.getItem('collapsedSets')) || {};
+
+        // Force refresh if cache version changed
+        if (storedVersion < CACHE_VERSION) {
+            collection = [];
+            localStorage.removeItem('magicCollection');
+            localStorage.setItem('cacheVersion', CACHE_VERSION);
+        }
 
         // Toggle set collapse
         function toggleSet(setName) {
@@ -1424,10 +1456,7 @@
                         html += `
                             <div class="set-header ${isCollapsed ? 'collapsed' : ''}" data-set="${setName}" onclick="toggleSet('${setName.replace(/'/g, "\\'")}')">
                                 <div class="set-header-left">
-                                    <div class="set-header-info">
-                                        <span>${setName}</span>
-                                        <span class="set-card-count">${totalSetCards} card${totalSetCards > 1 ? 's' : ''}</span>
-                                    </div>
+                                    <span>${setName}</span>
                                 </div>
                                 <div class="set-header-right">
                                     <span class="set-value">$${setValue.toFixed(2)}</span>
@@ -1441,9 +1470,12 @@
 
                         setCards.forEach(card => {
                             const rarity = card.rarity || 'common';
+                            const imageHtml = card.image
+                                ? `<img class="card-image ${rarity}" src="${card.image}" alt="${card.name}" onerror="this.onerror=null; this.outerHTML='<div class=\\'card-image-placeholder\\'><svg viewBox=\\'0 0 24 24\\'><path d=\\'M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z\\'/></svg></div>';">`
+                                : `<div class="card-image-placeholder"><svg viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg></div>`;
                             html += `
                                 <div class="card-item" onclick="openFullscreen(${card.originalIndex})">
-                                    <img class="card-image ${rarity}" src="${card.image}" alt="${card.name}">
+                                    ${imageHtml}
                                     <div class="card-info">
                                         <div class="card-name">
                                             ${card.name}
@@ -1472,9 +1504,12 @@
                     // Simple list without grouping
                     collection.forEach((card, index) => {
                         const rarity = card.rarity || 'common';
+                        const imageHtml = card.image
+                            ? `<img class="card-image ${rarity}" src="${card.image}" alt="${card.name}" onerror="this.onerror=null; this.outerHTML='<div class=\\'card-image-placeholder\\'><svg viewBox=\\'0 0 24 24\\'><path d=\\'M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z\\'/></svg></div>';">`
+                            : `<div class="card-image-placeholder"><svg viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg></div>`;
                         html += `
                             <div class="card-item" onclick="openFullscreen(${index})">
-                                <img class="card-image ${rarity}" src="${card.image}" alt="${card.name}">
+                                ${imageHtml}
                                 <div class="card-info">
                                     <div class="card-name">
                                         ${card.name}
@@ -1534,7 +1569,12 @@
             currentCard = { ...collection[index], index };
             const card = currentCard;
 
-            document.getElementById('fullscreenImage').src = card.imageLarge || card.image;
+            const fullscreenImg = document.getElementById('fullscreenImage');
+            fullscreenImg.onerror = function() {
+                this.style.display = 'none';
+            };
+            fullscreenImg.style.display = 'block';
+            fullscreenImg.src = card.imageLarge || card.image || '';
             document.getElementById('fullscreenName').textContent = card.name;
             document.getElementById('fullscreenSet').textContent = card.setName;
             document.getElementById('fullscreenQty').textContent = card.quantity;
@@ -1646,7 +1686,11 @@
                         if (data.data && data.data.length > 0) {
                             let html = '';
                             data.data.slice(0, 20).forEach(card => {
-                                const imageUrl = card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small || '';
+                                const imageUrl = card.image_uris?.normal || card.image_uris?.small || card.card_faces?.[0]?.image_uris?.normal || card.card_faces?.[0]?.image_uris?.small || '';
+                                const imageLarge = card.image_uris?.large || card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.large || card.card_faces?.[0]?.image_uris?.normal || '';
+                                const searchImageHtml = imageUrl
+                                    ? `<img src="${imageUrl}" alt="${card.name}" onerror="this.style.display='none'">`
+                                    : `<div class="card-image-placeholder" style="width:50px;height:70px"><svg viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4z"/></svg></div>`;
                                 html += `
                                     <div class="search-result-item" onclick='addCard(${JSON.stringify({
                                         id: card.id,
@@ -1654,7 +1698,7 @@
                                         setName: card.set_name,
                                         rarity: card.rarity,
                                         image: imageUrl,
-                                        imageLarge: card.image_uris?.large || card.card_faces?.[0]?.image_uris?.large || '',
+                                        imageLarge: imageLarge,
                                         price: card.prices?.usd,
                                         prices: {
                                             usd: card.prices?.usd,
@@ -1665,7 +1709,7 @@
                                         },
                                         purchaseUris: card.purchase_uris
                                     }).replace(/'/g, "\\'")})'>
-                                        <img src="${imageUrl}" alt="${card.name}">
+                                        ${searchImageHtml}
                                         <div class="search-result-info">
                                             <h4>${card.name}</h4>
                                             <p>${card.set_name} • <span class="rarity-badge ${card.rarity}">${card.rarity}</span></p>
