@@ -2310,144 +2310,147 @@
             event.target.value = '';
         }
 
-        // Preprocess image for better OCR
-        function preprocessImage(imageData) {
+        // Create multiple preprocessed versions of the image
+        function createImageVariants(imageData) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+                    const variants = [];
 
-                    // Crop to top 30% of image (card name area - increased for borderless)
-                    const cropHeight = Math.floor(img.height * 0.30);
-                    canvas.width = img.width;
-                    canvas.height = cropHeight;
+                    // Crop to top 20% (name bar area for most cards)
+                    const cropHeight = Math.floor(img.height * 0.20);
 
-                    // Draw cropped area
-                    ctx.drawImage(img, 0, 0, img.width, cropHeight, 0, 0, img.width, cropHeight);
+                    // Variant 1: Simple grayscale + light contrast (best for normal cards)
+                    const canvas1 = document.createElement('canvas');
+                    const ctx1 = canvas1.getContext('2d');
+                    canvas1.width = img.width;
+                    canvas1.height = cropHeight;
+                    ctx1.drawImage(img, 0, 0, img.width, cropHeight, 0, 0, img.width, cropHeight);
 
-                    // Get image data for processing
-                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imgData.data;
-
-                    // Calculate average brightness to detect dark backgrounds
-                    let totalBrightness = 0;
-                    const pixelCount = data.length / 4;
-                    for (let i = 0; i < data.length; i += 4) {
-                        totalBrightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    const imgData1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
+                    const data1 = imgData1.data;
+                    for (let i = 0; i < data1.length; i += 4) {
+                        const gray = (data1[i] * 0.299 + data1[i + 1] * 0.587 + data1[i + 2] * 0.114);
+                        const contrast = 1.3;
+                        const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
+                        const newValue = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+                        data1[i] = newValue;
+                        data1[i + 1] = newValue;
+                        data1[i + 2] = newValue;
                     }
-                    const avgBrightness = totalBrightness / pixelCount;
-                    const isDarkBackground = avgBrightness < 128;
+                    ctx1.putImageData(imgData1, 0, 0);
+                    variants.push({ name: 'grayscale', data: canvas1.toDataURL('image/png') });
 
-                    // Convert to grayscale first
-                    const grayValues = [];
-                    for (let i = 0; i < data.length; i += 4) {
-                        const gray = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-                        grayValues.push(gray);
+                    // Variant 2: Inverted (for white text on dark backgrounds)
+                    const canvas2 = document.createElement('canvas');
+                    const ctx2 = canvas2.getContext('2d');
+                    canvas2.width = img.width;
+                    canvas2.height = cropHeight;
+                    ctx2.drawImage(img, 0, 0, img.width, cropHeight, 0, 0, img.width, cropHeight);
+
+                    const imgData2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+                    const data2 = imgData2.data;
+                    for (let i = 0; i < data2.length; i += 4) {
+                        data2[i] = 255 - data2[i];
+                        data2[i + 1] = 255 - data2[i + 1];
+                        data2[i + 2] = 255 - data2[i + 2];
                     }
+                    ctx2.putImageData(imgData2, 0, 0);
+                    variants.push({ name: 'inverted', data: canvas2.toDataURL('image/png') });
 
-                    // Calculate Otsu's threshold for automatic binarization
-                    const histogram = new Array(256).fill(0);
-                    for (const gray of grayValues) {
-                        histogram[Math.floor(gray)]++;
-                    }
+                    // Variant 3: Original cropped (let Tesseract handle it)
+                    const canvas3 = document.createElement('canvas');
+                    const ctx3 = canvas3.getContext('2d');
+                    canvas3.width = img.width;
+                    canvas3.height = cropHeight;
+                    ctx3.drawImage(img, 0, 0, img.width, cropHeight, 0, 0, img.width, cropHeight);
+                    variants.push({ name: 'original', data: canvas3.toDataURL('image/png') });
 
-                    let sum = 0;
-                    for (let i = 0; i < 256; i++) sum += i * histogram[i];
-
-                    let sumB = 0, wB = 0, wF = 0;
-                    let maxVariance = 0, threshold = 128;
-
-                    for (let i = 0; i < 256; i++) {
-                        wB += histogram[i];
-                        if (wB === 0) continue;
-                        wF = pixelCount - wB;
-                        if (wF === 0) break;
-
-                        sumB += i * histogram[i];
-                        const mB = sumB / wB;
-                        const mF = (sum - sumB) / wF;
-                        const variance = wB * wF * (mB - mF) * (mB - mF);
-
-                        if (variance > maxVariance) {
-                            maxVariance = variance;
-                            threshold = i;
-                        }
-                    }
-
-                    // Apply processing based on background type
-                    for (let i = 0; i < data.length; i += 4) {
-                        const idx = i / 4;
-                        let gray = grayValues[idx];
-
-                        if (isDarkBackground) {
-                            // For dark backgrounds (borderless cards): invert and binarize
-                            // This makes white text become black text on white background
-                            gray = 255 - gray;
-                            const binaryValue = gray > (255 - threshold) ? 255 : 0;
-                            data[i] = binaryValue;
-                            data[i + 1] = binaryValue;
-                            data[i + 2] = binaryValue;
-                        } else {
-                            // For light backgrounds: increase contrast and binarize
-                            const contrast = 2.0;
-                            const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
-                            let newValue = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
-                            // Binarize with threshold
-                            newValue = newValue > threshold ? 255 : 0;
-                            data[i] = newValue;
-                            data[i + 1] = newValue;
-                            data[i + 2] = newValue;
-                        }
-                    }
-
-                    ctx.putImageData(imgData, 0, 0);
-                    resolve(canvas.toDataURL('image/png'));
+                    resolve(variants);
                 };
                 img.src = imageData;
             });
         }
 
-        // Process image with OCR
+        // Score OCR result quality
+        function scoreOcrResult(text) {
+            if (!text || text.trim().length === 0) return 0;
+
+            const lines = text.split('\n').filter(l => l.trim().length > 0);
+            if (lines.length === 0) return 0;
+
+            const firstLine = lines[0].trim();
+            let score = 0;
+
+            // Longer text is usually better
+            score += Math.min(firstLine.length, 30);
+
+            // Bonus for consecutive letters (actual words)
+            const letterMatches = firstLine.match(/[a-zA-Z]{3,}/g) || [];
+            score += letterMatches.length * 10;
+            score += letterMatches.reduce((sum, m) => sum + m.length, 0);
+
+            // Penalty for too many numbers/symbols
+            const symbolCount = (firstLine.match(/[^a-zA-Z\s,'-]/g) || []).length;
+            score -= symbolCount * 3;
+
+            // Bonus for comma (likely "Name, Title" format)
+            if (firstLine.includes(',')) score += 5;
+
+            return Math.max(0, score);
+        }
+
+        // Process image with OCR using multiple variants
         async function processImage(imageData) {
             document.getElementById('scanningOverlay').classList.add('active');
             document.getElementById('cameraActions').style.display = 'none';
 
             try {
-                document.getElementById('scanProgress').textContent = 'Préparation de l\'image...';
+                document.getElementById('scanProgress').textContent = 'Préparation des images...';
 
-                // Preprocess image for better OCR (crop to name area + enhance)
-                const processedImage = await preprocessImage(imageData);
+                // Create multiple preprocessed variants
+                const variants = await createImageVariants(imageData);
 
-                document.getElementById('scanProgress').textContent = 'Analyse OCR...';
+                let bestResult = { text: '', score: 0, cardName: null };
 
-                // Use Tesseract.js to recognize text on cropped name area
-                const result = await Tesseract.recognize(
-                    processedImage,
-                    'eng',
-                    {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                const percent = Math.round(m.progress * 100);
-                                document.getElementById('scanProgress').textContent = `Lecture du texte... ${percent}%`;
+                // Try OCR on each variant
+                for (let i = 0; i < variants.length; i++) {
+                    const variant = variants[i];
+                    document.getElementById('scanProgress').textContent = `Analyse ${i + 1}/${variants.length}...`;
+
+                    try {
+                        const result = await Tesseract.recognize(variant.data, 'eng', {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    const percent = Math.round(m.progress * 100);
+                                    document.getElementById('scanProgress').textContent =
+                                        `Analyse ${i + 1}/${variants.length}... ${percent}%`;
+                                }
                             }
+                        });
+
+                        const text = result.data.text;
+                        const score = scoreOcrResult(text);
+                        const cardName = extractCardName(text);
+
+                        console.log(`OCR ${variant.name}: "${text.split('\n')[0]}" (score: ${score})`);
+
+                        if (score > bestResult.score) {
+                            bestResult = { text, score, cardName };
                         }
+                    } catch (e) {
+                        console.error(`OCR error on ${variant.name}:`, e);
                     }
-                );
+                }
 
-                const text = result.data.text;
-                console.log('OCR Result (name area):', text);
+                console.log('Best result:', bestResult);
 
-                // Extract card name from the cropped area
-                const cardName = extractCardName(text);
-                console.log('Extracted card name:', cardName);
-
-                if (cardName && cardName.length >= 2) {
+                if (bestResult.cardName && bestResult.cardName.length >= 3) {
                     document.getElementById('scanProgress').textContent = 'Recherche de la carte...';
-                    await searchScannedCard({ name: cardName });
+                    await searchScannedCard({ name: bestResult.cardName });
                 } else {
                     // Show manual input if OCR failed
-                    showManualInput(text);
+                    showManualInput(bestResult.text);
                 }
             } catch (error) {
                 console.error('OCR Error:', error);
